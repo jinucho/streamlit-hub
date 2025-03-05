@@ -18,6 +18,7 @@ RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY")
 HEADERS = {
     "Authorization": f"Bearer {RUNPOD_API_KEY}",
     "Content-Type": "application/json",
+    "Accept": "application/json",
 }
 
 
