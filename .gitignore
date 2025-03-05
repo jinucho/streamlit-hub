@@ -1,0 +1,12 @@
+*.mp4.*
+*.mp4
+*.wav
+cookies.*
+__pycache__
+._*.*
+.DS_Store
+*.log
+.env
+data/
+* copy
+* copy.*
