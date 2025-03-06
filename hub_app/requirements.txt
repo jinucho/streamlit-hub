@@ -1,4 +1,6 @@
 pip>=24.0
+setuptools==75.2.0
+wheel==0.38.0
 streamlit==1.43.0
 requests==2.32.3
 python-dotenv==1.0.1
