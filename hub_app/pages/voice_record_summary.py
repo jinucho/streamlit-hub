@@ -19,6 +19,16 @@ def get_external_ip():
     return response.json()["ip"]
 
 
+# 페이지 네비게이션 숨기기
+hide_pages = """
+    <style>
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
+    </style>
+"""
+st.markdown(hide_pages, unsafe_allow_html=True)
+
 # 유틸리티 함수 임포트
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import check_runpod_status

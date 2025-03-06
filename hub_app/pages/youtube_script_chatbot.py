@@ -16,6 +16,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# 페이지 네비게이션 숨기기
+hide_pages = """
+    <style>
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
+    </style>
+"""
+st.markdown(hide_pages, unsafe_allow_html=True)
+
 # 홈 페이지 링크
 with st.sidebar:
     st.markdown("### 📌 NAVIGATION")
