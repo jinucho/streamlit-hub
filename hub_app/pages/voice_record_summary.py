@@ -4,7 +4,8 @@ import os
 import time
 import numpy as np
 import soundfile as sf
-import librosa  # 추가: 다양한 오디오 형식 지원
+
+# import librosa  # 추가: 다양한 오디오 형식 지원
 import google.generativeai as genai  # 추가: Google Gemini AIbase64
 from dotenv import load_dotenv
 import sys
@@ -12,6 +13,8 @@ import uuid
 import shutil
 from pathlib import Path
 import requests
+from pydub import AudioSegment
+import math
 
 
 def get_external_ip():
@@ -284,9 +287,11 @@ if uploaded_file is not None:
             with st.status("음성 변환 중...", expanded=True) as status:
                 # 오디오 파일 로드 및 정보 표시
                 try:
-                    # librosa를 사용하여 다양한 오디오 형식 지원
-                    audio_data, sample_rate = librosa.load(tmp_file_path, sr=None)
-                    duration = librosa.get_duration(y=audio_data, sr=sample_rate)
+                    # pydub를 사용하여 오디오 파일 로드
+                    audio = AudioSegment.from_file(tmp_file_path)
+                    duration = len(audio) / 1000  # 밀리초를 초로 변환
+                    sample_rate = audio.frame_rate
+
                     # 초를 시:분:초 형식으로 변환
                     hours, remainder = divmod(duration, 3600)
                     minutes, seconds = divmod(remainder, 60)
@@ -298,7 +303,12 @@ if uploaded_file is not None:
                         f"오디오 길이: {duration_formatted}, 샘플레이트: {sample_rate}Hz"
                     )
                 except Exception as e:
-                    st.error(f"오디오 파일 로드 중 오류 발생: {str(e)}")
+                    import traceback
+
+                    error_details = traceback.format_exc()
+                    st.error(f"오디오 파일 로드 중 오류 발생: {type(e).__name__}")
+                    st.error(f"오류 메시지: {str(e)}")
+                    st.code(error_details, language="python")  # 전체 스택 트레이스 표시
                     os.unlink(tmp_file_path)
                     # 처리 상태 해제
                     st.session_state.processing = False
