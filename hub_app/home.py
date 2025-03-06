@@ -22,6 +22,18 @@ with st.expander("🔔 업데이트 내역"):
 """
     )
 
+
+# 페이지 네비게이션 숨기기
+hide_pages = """
+    <style>
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
+    </style>
+"""
+st.markdown(hide_pages, unsafe_allow_html=True)
+
+
 st.markdown("---")
 # 사용 가능한 프로젝트 섹션
 st.markdown("## 📌 Project List")
