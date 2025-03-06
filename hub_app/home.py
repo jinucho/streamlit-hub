@@ -32,14 +32,14 @@ projects = [
         "name": "유튜브 스크립트 추출 및 AI 채팅",
         "page": "./pages/youtube_script_chatbot.py",
         "icon": "📺",
-        "thumbnail": "./assets/youtube_script_chatbot.webp",  # 썸네일 이미지 경로
+        "thumbnail": "https://raw.githubusercontent.com/jinucho/streamlit-hub/refs/heads/main/hub_app/assets/voice_record_summary.webp",
         "description": "유튜브 영상에서 음성을 스크립트로 추출하고 요약 및 AI 채팅",
     },
     {
         "name": "음성 녹음 요약",
         "page": "./pages/voice_record_summary.py",
         "icon": "🎤",
-        "thumbnail": "./assets/voice_record_summary.webp",  #
+        "thumbnail": "https://raw.githubusercontent.com/jinucho/streamlit-hub/refs/heads/main/hub_app/assets/youtube_script_chatbot.webp",
         "description": "음성 녹음을 텍스트로 변환 후 회의록 작성",
     },
     # 추가 프로젝트 예시
