@@ -4,14 +4,10 @@ import os
 import time
 import numpy as np
 import soundfile as sf
-import torch
 import librosa  # 추가: 다양한 오디오 형식 지원
-import google.generativeai as genai  # 추가: Google Gemini AI
-import requests
-import base64
+import google.generativeai as genai  # 추가: Google Gemini AIbase64
 from dotenv import load_dotenv
 import sys
-import json
 import uuid
 import shutil
 from pathlib import Path
