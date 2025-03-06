@@ -15,6 +15,7 @@ from pathlib import Path
 import requests
 from pydub import AudioSegment
 import math
+from tempfile import TemporaryDirectory
 
 
 def get_external_ip():
@@ -267,239 +268,207 @@ if st.session_state.processing and st.session_state.process_id != id(st.session_
     )
 
 if uploaded_file is not None:
-    # 임시 파일로 저장
-    with tempfile.NamedTemporaryFile(
-        delete=False, suffix=os.path.splitext(uploaded_file.name)[1]
-    ) as tmp_file:
-        tmp_file.write(uploaded_file.getvalue())
-        tmp_file_path = tmp_file.name
+    # 임시 디렉토리 생성 및 파일 저장
+    with TemporaryDirectory() as temp_dir:
+        temp_file_path = Path(temp_dir) / uploaded_file.name
+        temp_file_path.write_bytes(uploaded_file.getvalue())
 
-    # 변환 시작 버튼 추가
-    if not st.session_state.transcription_done:
-        if st.button("음성 변환 시작") and not (
-            st.session_state.processing
-            and st.session_state.process_id != id(st.session_state)
-        ):
-            # 처리 상태 설정
-            st.session_state.processing = True
-            st.session_state.process_id = id(st.session_state)
+        # 변환 시작 버튼 추가
+        if not st.session_state.transcription_done:
+            if st.button("음성 변환 시작") and not (
+                st.session_state.processing
+                and st.session_state.process_id != id(st.session_state)
+            ):
+                # 처리 상태 설정
+                st.session_state.processing = True
+                st.session_state.process_id = id(st.session_state)
 
-            with st.status("음성 변환 중...", expanded=True) as status:
-                # 오디오 파일 로드 및 정보 표시
-                try:
-                    # pydub를 사용하여 오디오 파일 로드
-                    audio = AudioSegment.from_file(tmp_file_path)
-                    duration = len(audio) / 1000  # 밀리초를 초로 변환
-                    sample_rate = audio.frame_rate
+                with st.status("음성 변환 중...", expanded=True) as status:
+                    # 오디오 파일 정보 표시 부분 건너뛰기
+                    st.info("오디오 파일 처리 중...")
 
-                    # 초를 시:분:초 형식으로 변환
-                    hours, remainder = divmod(duration, 3600)
-                    minutes, seconds = divmod(remainder, 60)
-                    duration_formatted = (
-                        f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
-                    )
-
-                    st.info(
-                        f"오디오 길이: {duration_formatted}, 샘플레이트: {sample_rate}Hz"
-                    )
-                except Exception as e:
-                    import traceback
-
-                    error_details = traceback.format_exc()
-                    st.error(f"오디오 파일 로드 중 오류 발생: {type(e).__name__}")
-                    st.error(f"오류 메시지: {str(e)}")
-                    st.code(error_details, language="python")  # 전체 스택 트레이스 표시
-                    os.unlink(tmp_file_path)
-                    # 처리 상태 해제
-                    st.session_state.processing = False
-                    st.stop()
-
-                # 텍스트 추출 시작
-                start_time = time.time()
-                try:
-                    # 로컬에 파일 호스팅하고 URL 얻기
-
-                    st.write("파일 업로드 중...")
-                    audio_url = host_file_locally(tmp_file_path)
-                    if not audio_url:
-                        status.update(label="호스팅 실패", state="error")
-                        st.error("파일 호스팅 실패")
-                        os.unlink(tmp_file_path)
-                        st.session_state.processing = False
-                        st.stop()
-                    st.write("파일 업로드 완료")
-
-                    # URL 방식으로 RunPod API 요청 페이로드 구성
-                    payload = {
-                        "input": {
-                            "params": {
-                                "audio_url": audio_url,
-                                "model": "large-v3",
-                                "batch_size": 32,
-                                "language": language,
-                            },
-                            # 기타 필요한 매개변수
-                        }
-                    }
-
-                    # RunPod API 호출
-                    st.write("백엔드 API 처리 중...")
+                    # 텍스트 추출 시작
+                    start_time = time.time()
                     try:
-                        result = check_runpod_status(payload, RUNPOD_ENDPOINT_ID)
-                        if result and "output" in result:
-                            status.update(label="처리 완료", state="complete")
-                            output = result["output"]
+                        # 로컬에 파일 호스팅하고 URL 얻기
+                        st.write("파일 업로드 중...")
+                        audio_url = host_file_locally(str(temp_file_path))
+                        if not audio_url:
+                            status.update(label="호스팅 실패", state="error")
+                            st.error("파일 호스팅 실패")
+                            st.session_state.processing = False
+                            st.stop()
+                        st.write("파일 업로드 완료")
 
-                            # 결과 처리
-                            segments_list = output.get("segments", [])
-                            st.session_state.segments_list = segments_list
+                        # URL 방식으로 RunPod API 요청 페이로드 구성
+                        payload = {
+                            "input": {
+                                "params": {
+                                    "audio_url": audio_url,
+                                    "model": "large-v3",
+                                    "batch_size": 32,
+                                    "language": language,
+                                },
+                                # 기타 필요한 매개변수
+                            }
+                        }
 
-                            # 전체 텍스트 구성
-                            full_text = ""
-                            for segment in segments_list:
-                                full_text += f"{segment['start']}s - {segment['end']}s: {segment['text']}\n"
-                            st.session_state.full_text = full_text
+                        # RunPod API 호출
+                        st.write("백엔드 API 처리 중...")
+                        try:
+                            result = check_runpod_status(payload, RUNPOD_ENDPOINT_ID)
+                            if result and "output" in result:
+                                status.update(label="처리 완료", state="complete")
+                                output = result["output"]
 
-                            # 회의록 생성용 순수 텍스트 추출
-                            pure_text = " ".join(
-                                [segment["text"] for segment in segments_list]
-                            )
-                            st.session_state.pure_text = pure_text
+                                # 결과 처리
+                                segments_list = output.get("segments", [])
+                                st.session_state.segments_list = segments_list
 
-                            # 변환 완료 상태 설정
-                            st.session_state.transcription_done = True
-                            status.update(label="처리 완료", state="complete")
-                        else:
-                            st.error("RunPod API에서 유효한 응답을 받지 못했습니다.")
-                            if result:
-                                st.json(result)
+                                # 전체 텍스트 구성
+                                full_text = ""
+                                for segment in segments_list:
+                                    full_text += f"{segment['start']}s - {segment['end']}s: {segment['text']}\n"
+                                st.session_state.full_text = full_text
 
-                            # 오류 원인 분석 및 제안
-                            st.error("가능한 오류 원인:")
-                            st.markdown(
+                                # 회의록 생성용 순수 텍스트 추출
+                                pure_text = " ".join(
+                                    [segment["text"] for segment in segments_list]
+                                )
+                                st.session_state.pure_text = pure_text
+
+                                # 변환 완료 상태 설정
+                                st.session_state.transcription_done = True
+                                status.update(label="처리 완료", state="complete")
+                            else:
+                                st.error(
+                                    "RunPod API에서 유효한 응답을 받지 못했습니다."
+                                )
+                                if result:
+                                    st.json(result)
+
+                                # 오류 원인 분석 및 제안
+                                st.error("가능한 오류 원인:")
+                                st.markdown(
+                                    """
+                                1. RunPod에서 오디오 URL에 접근할 수 없음
+                                2. 오디오 파일 형식이 지원되지 않음
+                                3. RunPod 서버 오류
+                                
+                                **해결 방법:**
+                                - APP_URL 환경변수가 외부에서 접근 가능한 URL로 설정되었는지 확인
+                                - 오디오 파일이 올바른 형식인지 확인
+                                - RunPod 서비스 상태 확인
                                 """
-                            1. RunPod에서 오디오 URL에 접근할 수 없음
-                            2. 오디오 파일 형식이 지원되지 않음
-                            3. RunPod 서버 오류
-                            
-                            **해결 방법:**
-                            - APP_URL 환경변수가 외부에서 접근 가능한 URL로 설정되었는지 확인
-                            - 오디오 파일이 올바른 형식인지 확인
-                            - RunPod 서비스 상태 확인
-                            """
-                            )
+                                )
+                                status.update(label="API 호출 오류", state="error")
+                        except Exception as e:
                             status.update(label="API 호출 오류", state="error")
-                    except Exception as e:
-                        status.update(label="API 호출 오류", state="error")
-                        st.error(f"RunPod API 호출 중 오류: {str(e)}")
+                            st.error(f"RunPod API 호출 중 오류: {str(e)}")
 
-                except Exception as e:
-                    st.error(f"변환 중 오류 발생: {str(e)}")
-                    os.unlink(tmp_file_path)
+                    except Exception as e:
+                        st.error(f"변환 중 오류 발생: {str(e)}")
+                        # 처리 상태 해제
+                        st.session_state.processing = False
+                        status.update(label="처리 실패", state="error")
+                        st.stop()
+
+                    # 처리 시간 계산 - 오디오 길이 정보가 없으므로 처리 시간만 표시
+                    process_time = time.time() - start_time
+
+                    # 결과 표시
+                    st.success(f"변환 완료! 처리 시간: {process_time:.2f}초")
+
                     # 처리 상태 해제
                     st.session_state.processing = False
-                    status.update(label="처리 실패", state="error")
-                    st.stop()
 
-                # 처리 시간 계산
-                process_time = time.time() - start_time
+                    # 페이지 새로고침
+                    st.rerun()
 
-                # 결과 표시
-                st.success(
-                    f"변환 완료! 처리 시간: {process_time:.2f}초 (처리 속도: {duration/process_time:.2f}x)"
-                )
+        # 변환이 완료된 경우 결과 표시
+        if st.session_state.transcription_done:
+            st.subheader("결과")
+            # 텍스트 다운로드 버튼
+            st.download_button(
+                label="텍스트 파일 다운로드",
+                data=st.session_state.full_text,
+                file_name=f"{os.path.splitext(uploaded_file.name)[0]}_transcript.txt",
+                mime="text/plain",
+            )
 
-                # 처리 상태 해제
-                st.session_state.processing = False
+            # 세그먼트별 텍스트 표시 - 컨테이너로 감싸기
+            with st.container():
+                st.subheader("시간별 텍스트")
 
-                # 페이지 새로고침
-                st.rerun()
+                # 접을 수 있는 expander로 추가 옵션 제공 (선택사항)
+                with st.expander("시간별 텍스트 보기", expanded=False):
+                    # 세그먼트 데이터를 표 형식으로 표시
+                    segment_data = []
+                    for i, segment in enumerate(st.session_state.segments_list):
+                        segment_data.append(
+                            {
+                                "번호": i + 1,
+                                "시작 시간": f"{segment['start']:.2f}s",
+                                "종료 시간": f"{segment['end']:.2f}s",
+                                "텍스트": segment["text"],
+                            }
+                        )
 
-    # 변환이 완료된 경우 결과 표시
-    if st.session_state.transcription_done:
-        st.subheader("결과")
-        # 텍스트 다운로드 버튼
-        st.download_button(
-            label="텍스트 파일 다운로드",
-            data=st.session_state.full_text,
-            file_name=f"{os.path.splitext(uploaded_file.name)[0]}_transcript.txt",
-            mime="text/plain",
-        )
+                    st.dataframe(segment_data, use_container_width=True)
 
-        # 세그먼트별 텍스트 표시 - 컨테이너로 감싸기
-        with st.container():
-            st.subheader("시간별 텍스트")
+            # 구분선 추가로 섹션 분리
+            st.markdown("---")
 
-            # 접을 수 있는 expander로 추가 옵션 제공 (선택사항)
-            with st.expander("시간별 텍스트 보기", expanded=False):
-                # 세그먼트 데이터를 표 형식으로 표시
-                segment_data = []
-                for i, segment in enumerate(st.session_state.segments_list):
-                    segment_data.append(
-                        {
-                            "번호": i + 1,
-                            "시작 시간": f"{segment['start']:.2f}s",
-                            "종료 시간": f"{segment['end']:.2f}s",
-                            "텍스트": segment["text"],
-                        }
+            # 회의록 생성 버튼 추가
+            with st.container():
+                st.subheader("AI 회의록 생성")
+
+                # 회의록 생성 버튼 (세션 상태를 사용하여 상태 유지)
+                if api_key:
+                    if st.button("회의록 생성") or st.session_state.generate_minutes:
+                        if (
+                            not st.session_state.meeting_minutes
+                        ):  # 회의록이 아직 생성되지 않은 경우에만 실행
+                            st.session_state.generate_minutes = True
+                            with st.spinner("AI가 회의록을 작성 중입니다..."):
+                                try:
+                                    meeting_minutes = generate_meeting_minutes(
+                                        st.session_state.pure_text, gemini_model
+                                    )
+                                    st.session_state.meeting_minutes = meeting_minutes
+                                    st.session_state.generate_minutes = (
+                                        False  # 생성 완료 후 상태 업데이트
+                                    )
+                                    st.success("회의록 생성 완료!")
+                                    st.rerun()  # 페이지 새로고침
+                                except Exception as e:
+                                    st.error(f"회의록 생성 중 오류 발생: {str(e)}")
+                                    st.error(
+                                        "상세 오류 정보: " + str(e.__class__.__name__)
+                                    )
+                                    st.session_state.generate_minutes = False
+                else:
+                    st.warning(
+                        "회의록 생성을 위한 Google Gemini API 키가 설정되지 않았습니다. .env 파일을 확인해주세요."
                     )
 
-                st.dataframe(segment_data, use_container_width=True)
+                # 회의록이 생성되었으면 표시
+                if st.session_state.meeting_minutes:
+                    with st.container():
+                        st.markdown("### AI 회의록")
+                        st.markdown(st.session_state.meeting_minutes)
 
-        # 구분선 추가로 섹션 분리
-        st.markdown("---")
-
-        # 회의록 생성 버튼 추가
-        with st.container():
-            st.subheader("AI 회의록 생성")
-
-            # 회의록 생성 버튼 (세션 상태를 사용하여 상태 유지)
-            if api_key:
-                if st.button("회의록 생성") or st.session_state.generate_minutes:
-                    if (
-                        not st.session_state.meeting_minutes
-                    ):  # 회의록이 아직 생성되지 않은 경우에만 실행
-                        st.session_state.generate_minutes = True
-                        with st.spinner("AI가 회의록을 작성 중입니다..."):
-                            try:
-                                meeting_minutes = generate_meeting_minutes(
-                                    st.session_state.pure_text, gemini_model
-                                )
-                                st.session_state.meeting_minutes = meeting_minutes
-                                st.session_state.generate_minutes = (
-                                    False  # 생성 완료 후 상태 업데이트
-                                )
-                                st.success("회의록 생성 완료!")
-                                st.rerun()  # 페이지 새로고침
-                            except Exception as e:
-                                st.error(f"회의록 생성 중 오류 발생: {str(e)}")
-                                st.error("상세 오류 정보: " + str(e.__class__.__name__))
-                                st.session_state.generate_minutes = False
-            else:
-                st.warning(
-                    "회의록 생성을 위한 Google Gemini API 키가 설정되지 않았습니다. .env 파일을 확인해주세요."
-                )
-
-            # 회의록이 생성되었으면 표시
-            if st.session_state.meeting_minutes:
-                with st.container():
-                    st.markdown("### AI 회의록")
-                    st.markdown(st.session_state.meeting_minutes)
-
-                    # 회의록 다운로드 버튼
-                    st.download_button(
-                        label="회의록 다운로드",
-                        data=st.session_state.meeting_minutes,
-                        file_name=f"{os.path.splitext(uploaded_file.name)[0]}_meeting_minutes.txt",
-                        mime="text/plain",
-                    )
+                        # 회의록 다운로드 버튼
+                        st.download_button(
+                            label="회의록 다운로드",
+                            data=st.session_state.meeting_minutes,
+                            file_name=f"{os.path.splitext(uploaded_file.name)[0]}_meeting_minutes.txt",
+                            mime="text/plain",
+                        )
             cleanup_temp_files()
-    else:
-        st.info(
-            "파일이 업로드되었습니다. '음성 변환 시작' 버튼을 클릭하여 변환을 시작하세요."
-        )
-
-    # 임시 파일 삭제
-    os.unlink(tmp_file_path)
+        else:
+            st.info(
+                "파일이 업로드되었습니다. '음성 변환 시작' 버튼을 클릭하여 변환을 시작하세요."
+            )
 else:
     st.info("위에서 음성 파일을 업로드해주세요.")
