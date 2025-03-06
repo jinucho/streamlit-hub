@@ -5,20 +5,20 @@ st.set_page_config(page_title="Jinu's AI Projects", page_icon="🏠", layout="wi
 
 # 홈페이지 제목
 st.title("🚀 Jinu's AI Projects")
-st.markdown("> LLM, RAG, LangChain, LangGraph 기반 AI 애플리케이션 모음")
+st.write("LLM, RAG, LangChain, LangGraph 기반 AI 애플리케이션 모음")
 st.markdown("---")
 
 with st.expander("🔔 업데이트 내역"):
-    st.markdown("#### 2025-03-05")
-    st.markdown(
-        """
-- 유튜브 스크립트 추출 및 AI 채팅 페이지 추가
-"""
-    )
     st.markdown("#### 2025-03-06")
     st.markdown(
         """
 - 음성 녹음 요약 페이지 추가
+"""
+    )
+    st.markdown("#### 2025-03-05")
+    st.markdown(
+        """
+- 개발되어 있던 유튜브 스크립트 추출 및 AI 채팅 페이지 추가
 """
     )
 

@@ -26,6 +26,16 @@ with st.sidebar:
         icon="📺",
     )
     st.page_link("pages/voice_record_summary.py", label="음성 녹음 요약", icon="🎤")
+    st.markdown("---")
+    st.write("사용 방법")
+    st.markdown(
+        """
+    1. 유튜브 영상의 URL을 입력합니다.
+    2. 사용하고자 하는 모델을 선택 합니다.
+    3. 스크립트 추출을 클릭 합니다.
+    4. 영상에 대한 요약 및 전체 스크립트가 제공되고, 채팅 창에서 질문을 입력 할 수 있습니다.
+    """
+    )
 # Streamlit 웹 애플리케이션 설정
 st.title("유튜브 스크립트 추출 및 요약과 AI 채팅")
 
