@@ -25,7 +25,7 @@ with st.sidebar:
         label="유튜브 스크립트 추출 및 요약과 AI 채팅",
         icon="📺",
     )
-
+    st.page_link("pages/voice_record_summary.py", label="음성 녹음 요약", icon="🎤")
 # Streamlit 웹 애플리케이션 설정
 st.title("유튜브 스크립트 추출 및 요약과 AI 채팅")
 
