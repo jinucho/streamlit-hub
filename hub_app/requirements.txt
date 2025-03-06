@@ -7,3 +7,4 @@ librosa==0.10.1
 pydub==0.25.1
 google-generativeai==0.8.3
 requests==2.32.3
+selenium==75.2.0
