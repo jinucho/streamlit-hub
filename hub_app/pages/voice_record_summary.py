@@ -11,6 +11,13 @@ import sys
 import uuid
 import shutil
 from pathlib import Path
+import requests
+
+
+def get_external_ip():
+    response = requests.get("https://api64.ipify.org?format=json")
+    return response.json()["ip"]
+
 
 # 유틸리티 함수 임포트
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -28,7 +35,7 @@ STATIC_DIR = os.path.join(
 os.makedirs(STATIC_DIR, exist_ok=True)
 
 # 앱 URL 설정 (Streamlit 앱이 실행되는 URL)
-APP_URL = os.getenv("APP_URL")
+APP_URL = get_external_ip()
 
 # 전역 처리 상태 관리를 위한 세션 상태 초기화
 if "processing" not in st.session_state:
