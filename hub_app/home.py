@@ -100,22 +100,27 @@ with st.sidebar:
     st.page_link("home.py", label="🏠 홈")
     for project in projects:
         st.page_link(project["page"], label=f"{project['icon']} {project['name']}")
-
-    # 관리자 페이지 링크 (작은 글씨로 표시)
     st.markdown("---")
-    st.page_link("./pages/admin.py", label="👤 관리자 페이지", icon="🔒")
+    st.page_link("./pages/admin.py", label="🔒 관리자 페이지")
+
+    st.markdown("---")
 
     # 기술 스택 섹션
     st.markdown("## 🛠️ 주요 기술 스택")
     st.markdown(
         """
-    - **Language**: Python
-    - **LLM**: OpenAI, Hugging Face
-    - **Vector DB(Index)**: FAISS
-    - **Framework**: LangChain, LangGraph
-    - **Speech2Text**: Faster-Whisper
-    - **UI**: Streamlit
-    - **Backend**: RunPod Serverless
-    - **Storage**: Cloudinary
-    """
+        <div class="small-font">
+        <ul>
+            <li><b>Language</b>: Python</li>
+            <li><b>LLM</b>: OpenAI, Hugging Face</li>
+            <li><b>Vector DB(Index)</b>: FAISS</li>
+            <li><b>Framework</b>: LangChain, LangGraph</li>
+            <li><b>Speech2Text</b>: Faster-Whisper</li>
+            <li><b>UI</b>: Streamlit</li>
+            <li><b>Backend</b>: RunPod Serverless</li>
+            <li><b>Storage</b>: Cloudinary</li>
+        </ul>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
