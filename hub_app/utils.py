@@ -169,7 +169,7 @@ def upload_to_cloudinary(file_path):
         )
 
         # URL 반환
-        return result["secure_url"]
+        return result
     except Exception as e:
         print(f"Cloudinary 업로드 오류: {str(e)}")
         return None
