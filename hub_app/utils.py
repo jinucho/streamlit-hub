@@ -277,3 +277,22 @@ def update_notice(index, updated_notice):
     if 0 <= index < len(notices):
         notices[index] = updated_notice
     return save_notices(notices)
+
+
+# Cloudinary에서 파일 삭제하는 함수
+def delete_from_cloudinary(public_id):
+    """
+    Cloudinary에서 파일을 삭제하는 함수
+
+    Args:
+        public_id (str): 삭제할 파일의 public_id
+
+    Returns:
+        dict: 삭제 결과
+    """
+    try:
+        result = cloudinary.uploader.destroy(public_id)
+        return result
+    except Exception as e:
+        print(f"Cloudinary 파일 삭제 오류: {str(e)}")
+        raise e

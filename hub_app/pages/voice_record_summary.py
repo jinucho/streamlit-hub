@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 # 유틸리티 함수 임포트
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import check_runpod_status, upload_to_cloudinary
+from utils import check_runpod_status, upload_to_cloudinary, delete_from_cloudinary
 
 # 페이지 네비게이션 숨기기
 hide_pages = """
@@ -164,11 +164,20 @@ if uploaded_file is not None and "current_file" not in st.session_state:
     st.session_state.current_file = uploaded_file.name
     st.session_state.transcription_done = False
     st.session_state.meeting_minutes = ""
+    st.session_state.cloudinary_public_id = None  # Cloudinary 파일 ID 저장용
 elif (
     uploaded_file is not None
     and st.session_state.get("current_file") != uploaded_file.name
 ):
     # 새 파일이 업로드되면 상태 초기화
+    # 이전 파일이 있으면 삭제
+    if st.session_state.get("cloudinary_public_id"):
+        try:
+            delete_from_cloudinary(st.session_state.cloudinary_public_id)
+            st.session_state.cloudinary_public_id = None
+        except Exception as e:
+            st.warning(f"이전 파일 삭제 중 오류 발생: {str(e)}")
+
     st.session_state.current_file = uploaded_file.name
     st.session_state.transcription_done = False
     st.session_state.meeting_minutes = ""
@@ -196,20 +205,23 @@ if uploaded_file is not None:
                 st.session_state.process_id = id(st.session_state)
 
                 with st.status("음성 변환 중...", expanded=True) as status:
-                    # 오디오 파일 정보 표시 부분 건너뛰기
-                    st.info("오디오 파일 처리 중...")
-
                     # 텍스트 추출 시작
                     start_time = time.time()
                     try:
                         # Cloudinary에 파일 업로드하고 URL 얻기
                         st.write("파일 업로드 중...")
-                        audio_url = upload_to_cloudinary(str(temp_file_path))
-                        if not audio_url:
+                        upload_result = upload_to_cloudinary(str(temp_file_path))
+                        if not upload_result or "secure_url" not in upload_result:
                             status.update(label="업로드 실패", state="error")
                             st.error("Cloudinary 업로드 실패")
                             st.session_state.processing = False
                             st.stop()
+
+                        audio_url = upload_result["secure_url"]
+                        # Cloudinary 파일 ID 저장 (나중에 삭제하기 위함)
+                        st.session_state.cloudinary_public_id = upload_result[
+                            "public_id"
+                        ]
                         st.write("파일 업로드 완료")
 
                         # URL 방식으로 RunPod API 요청 페이로드 구성
@@ -375,6 +387,20 @@ if uploaded_file is not None:
                             file_name=f"{os.path.splitext(uploaded_file.name)[0]}_meeting_minutes.txt",
                             mime="text/plain",
                         )
+
+            # 페이지 하단에 파일 삭제 버튼 추가
+            if st.session_state.transcription_done and st.session_state.get(
+                "cloudinary_public_id"
+            ):
+                st.markdown("---")
+                st.subheader("파일 관리")
+                if st.button("Cloudinary에서 음성 파일 삭제"):
+                    try:
+                        delete_from_cloudinary(st.session_state.cloudinary_public_id)
+                        st.success("파일이 성공적으로 삭제되었습니다.")
+                        st.session_state.cloudinary_public_id = None
+                    except Exception as e:
+                        st.error(f"파일 삭제 중 오류 발생: {str(e)}")
         else:
             st.info(
                 "파일이 업로드되었습니다. '음성 변환 시작' 버튼을 클릭하여 변환을 시작하세요."
