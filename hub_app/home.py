@@ -1,4 +1,5 @@
 import streamlit as st
+from utils import load_notices
 
 # Streamlit 웹 애플리케이션 설정
 st.set_page_config(page_title="Jinu's AI Projects", page_icon="🏠", layout="wide")
@@ -8,20 +9,20 @@ st.title("🚀 Jinu's AI Projects")
 st.write("LLM, RAG, LangChain, LangGraph 기반 AI 애플리케이션 모음")
 st.markdown("---")
 
-with st.expander("🔔 업데이트 내역"):
-    st.markdown("#### 2025-03-06")
-    st.markdown(
-        """
-- 음성 녹음 요약 페이지 추가
-"""
-    )
-    st.markdown("#### 2025-03-05")
-    st.markdown(
-        """
-- 개발되어 있던 유튜브 스크립트 추출 및 AI 채팅 페이지 추가
-"""
-    )
+# 공지사항 불러오기
+notices = load_notices()
 
+# 공지사항 표시
+with st.expander("🔔 업데이트 내역", expanded=True):
+    if notices:
+        # 날짜 기준으로 내림차순 정렬 (최신순)
+        sorted_notices = sorted(notices, key=lambda x: x.get("date", ""), reverse=True)
+
+        for notice in sorted_notices:
+            st.markdown(f"#### {notice['date']}")
+            st.markdown(notice["content"])
+    else:
+        st.info("등록된 공지사항이 없습니다.")
 
 # 페이지 네비게이션 숨기기
 hide_pages = """
@@ -99,6 +100,11 @@ with st.sidebar:
     st.page_link("home.py", label="🏠 홈")
     for project in projects:
         st.page_link(project["page"], label=f"{project['icon']} {project['name']}")
+
+    # 관리자 페이지 링크 (작은 글씨로 표시)
+    st.markdown("---")
+    st.page_link("./pages/admin.py", label="👤 관리자 페이지", icon="🔒")
+
     # 기술 스택 섹션
     st.markdown("## 🛠️ 주요 기술 스택")
     st.markdown(

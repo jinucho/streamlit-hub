@@ -1,27 +1,16 @@
-import streamlit as st
-import tempfile
 import os
-import time
-import numpy as np
-import soundfile as sf
-
-# import librosa  # 추가: 다양한 오디오 형식 지원
-import google.generativeai as genai  # 추가: Google Gemini AIbase64
-from dotenv import load_dotenv
 import sys
-import uuid
-import shutil
+import time
 from pathlib import Path
-import requests
-from pydub import AudioSegment
-import math
 from tempfile import TemporaryDirectory
 
+import google.generativeai as genai
+import streamlit as st
+from dotenv import load_dotenv
 
-def get_external_ip():
-    response = requests.get("https://api64.ipify.org?format=json")
-    return response.json()["ip"]
-
+# 유틸리티 함수 임포트
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import check_runpod_status, upload_to_cloudinary
 
 # 페이지 네비게이션 숨기기
 hide_pages = """
@@ -33,23 +22,12 @@ hide_pages = """
 """
 st.markdown(hide_pages, unsafe_allow_html=True)
 
-# 유틸리티 함수 임포트
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import check_runpod_status
 
 load_dotenv()
 
 # RunPod 정보
 RUNPOD_ENDPOINT_ID = os.getenv("RUNPOD_ENDPOINT_ID_WHISPER")  # Whisper 엔드포인트 ID
 
-# 정적 파일 디렉토리 설정 - static으로 변경
-STATIC_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static"
-)
-os.makedirs(STATIC_DIR, exist_ok=True)
-
-# 앱 URL 설정 (Streamlit 앱이 실행되는 URL)
-APP_URL = get_external_ip()
 
 # 전역 처리 상태 관리를 위한 세션 상태 초기화
 if "processing" not in st.session_state:
@@ -68,79 +46,6 @@ if "transcription_done" not in st.session_state:
     st.session_state.transcription_done = False
 if "generate_minutes" not in st.session_state:
     st.session_state.generate_minutes = False
-if "temp_files" not in st.session_state:
-    st.session_state.temp_files = []
-
-
-# 파일을 정적 디렉토리에 복사하고 URL 생성하는 함수
-def host_file_locally(file_path):
-    """
-    파일을 정적 디렉토리에 복사하고 URL 반환
-
-    Args:
-        file_path (str): 복사할 파일 경로
-
-    Returns:
-        str: 파일의 URL
-    """
-    try:
-        # 고유한 파일명 생성
-        file_extension = os.path.splitext(file_path)[1]
-        unique_filename = f"{uuid.uuid4()}{file_extension}"
-        dest_path = os.path.join(STATIC_DIR, unique_filename)
-
-        # 파일 복사
-        shutil.copy(file_path, dest_path)
-
-        # 임시 파일 목록에 추가 (나중에 정리하기 위해)
-        st.session_state.temp_files.append(dest_path)
-
-        # 파일 URL 생성 - URL 경로 수정
-        # 주의: 이 URL은 Streamlit 앱이 실행되는 서버에서 접근 가능해야 함
-        file_url = f"{APP_URL}/app/static/{unique_filename}"  # /app/static/ 경로 사용
-
-        return file_url
-
-    except Exception as e:
-        st.error(f"파일 호스팅 오류: {str(e)}")
-        return None
-
-
-# 임시 파일 정리 함수
-def cleanup_temp_files():
-    """세션에 저장된 임시 파일 정리"""
-    if "temp_files" in st.session_state:
-        for file_path in st.session_state.temp_files:
-            try:
-                if os.path.exists(file_path):
-                    os.remove(file_path)
-            except Exception as e:
-                st.warning(f"파일 정리 중 오류: {str(e)}")
-
-        st.session_state.temp_files = []
-
-
-# 오래된 파일 정리 함수 (주기적으로 실행)
-def cleanup_old_files(max_age_hours=24):
-    """오래된 정적 파일 정리"""
-    try:
-        current_time = time.time()
-        count = 0
-
-        for filename in os.listdir(STATIC_DIR):
-            file_path = os.path.join(STATIC_DIR, filename)
-            # 파일 생성 시간 확인
-            file_created = os.path.getctime(file_path)
-            # 지정된 시간보다 오래된 파일 삭제
-            if current_time - file_created > (max_age_hours * 3600):
-                os.remove(file_path)
-                count += 1
-
-        if count > 0:
-            st.info(f"{count}개의 오래된 파일을 정리했습니다.")
-
-    except Exception as e:
-        st.warning(f"오래된 파일 정리 중 오류: {str(e)}")
 
 
 # Gemini AI 모델 초기화 함수
@@ -192,9 +97,6 @@ with st.sidebar:
     st.page_link("pages/voice_record_summary.py", label="음성 녹음 요약", icon="🎤")
 
 
-# 오래된 파일 정리 (페이지 로드 시 실행)
-cleanup_old_files()
-
 # 사이드바 설정
 with st.sidebar:
     model_size = "large-v3"  # RunPod에서 사용할 모델 크기
@@ -224,6 +126,16 @@ with st.sidebar:
     if not RUNPOD_ENDPOINT_ID:
         st.warning(
             "RunPod API 키 또는 엔드포인트 ID가 설정되지 않았습니다. .env 파일에 RUNPOD_API_KEY와 RUNPOD_WHISPER_ENDPOINT_ID를 추가해주세요."
+        )
+
+    # Cloudinary 설정 확인
+    if (
+        not os.getenv("CLOUDINARY_CLOUD_NAME")
+        or not os.getenv("CLOUDINARY_API_KEY")
+        or not os.getenv("CLOUDINARY_API_SECRET")
+    ):
+        st.warning(
+            "Cloudinary 설정이 완료되지 않았습니다. .env 파일에 CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET를 추가해주세요."
         )
 
     st.markdown("---")
@@ -290,12 +202,12 @@ if uploaded_file is not None:
                     # 텍스트 추출 시작
                     start_time = time.time()
                     try:
-                        # 로컬에 파일 호스팅하고 URL 얻기
+                        # Cloudinary에 파일 업로드하고 URL 얻기
                         st.write("파일 업로드 중...")
-                        audio_url = host_file_locally(str(temp_file_path))
+                        audio_url = upload_to_cloudinary(str(temp_file_path))
                         if not audio_url:
-                            status.update(label="호스팅 실패", state="error")
-                            st.error("파일 호스팅 실패")
+                            status.update(label="업로드 실패", state="error")
+                            st.error("Cloudinary 업로드 실패")
                             st.session_state.processing = False
                             st.stop()
                         st.write("파일 업로드 완료")
@@ -309,7 +221,6 @@ if uploaded_file is not None:
                                     "batch_size": 32,
                                     "language": language,
                                 },
-                                # 기타 필요한 매개변수
                             }
                         }
 
@@ -356,7 +267,6 @@ if uploaded_file is not None:
                                 3. RunPod 서버 오류
                                 
                                 **해결 방법:**
-                                - APP_URL 환경변수가 외부에서 접근 가능한 URL로 설정되었는지 확인
                                 - 오디오 파일이 올바른 형식인지 확인
                                 - RunPod 서비스 상태 확인
                                 """
@@ -465,7 +375,6 @@ if uploaded_file is not None:
                             file_name=f"{os.path.splitext(uploaded_file.name)[0]}_meeting_minutes.txt",
                             mime="text/plain",
                         )
-            cleanup_temp_files()
         else:
             st.info(
                 "파일이 업로드되었습니다. '음성 변환 시작' 버튼을 클릭하여 변환을 시작하세요."
