@@ -116,5 +116,6 @@ with st.sidebar:
     - **Speech2Text**: Faster-Whisper
     - **UI**: Streamlit
     - **Backend**: RunPod Serverless
+    - **Storage**: Cloudinary
     """
     )
