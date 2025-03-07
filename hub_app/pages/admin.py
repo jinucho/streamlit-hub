@@ -5,6 +5,16 @@ from datetime import datetime
 # Streamlit 웹 애플리케이션 설정
 st.set_page_config(page_title="관리자 페이지", page_icon="🔒", layout="wide")
 
+# 페이지 네비게이션 숨기기
+hide_pages = """
+    <style>
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
+    </style>
+"""
+st.markdown(hide_pages, unsafe_allow_html=True)
+
 # 세션 상태 초기화
 if "admin_authenticated" not in st.session_state:
     st.session_state.admin_authenticated = False
