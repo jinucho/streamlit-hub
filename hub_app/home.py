@@ -13,7 +13,7 @@ st.markdown("---")
 notices = load_notices()
 
 # 공지사항 표시
-with st.expander("🔔 업데이트 내역", expanded=True):
+with st.expander("🔔 업데이트 내역", expanded=False):
     if notices:
         # 날짜 기준으로 내림차순 정렬 (최신순)
         sorted_notices = sorted(notices, key=lambda x: x.get("date", ""), reverse=True)
