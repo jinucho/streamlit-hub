@@ -88,11 +88,6 @@ with st.container(height=800):
         # 구분선 추가
         st.markdown("---")
 
-st.subheader("Contact")
-st.markdown("📧 Email: duojinwu@gmail.com")
-st.markdown("💻 GitHub: https://github.com/jinucho")
-st.markdown("🔗 LinkedIn: https://www.linkedin.com/in/jinucho")
-
 
 # 사이드바 설정
 with st.sidebar:
@@ -124,3 +119,7 @@ with st.sidebar:
         """,
         unsafe_allow_html=True,
     )
+    st.subheader("Contact")
+    st.markdown("📧 Email: duojinwu@gmail.com")
+    st.markdown("💻 GitHub: https://github.com/jinucho")
+    st.markdown("🔗 LinkedIn: https://www.linkedin.com/in/jinucho")
