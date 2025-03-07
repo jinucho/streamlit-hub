@@ -12,6 +12,7 @@ import cloudinary
 import cloudinary.api
 import cloudinary.uploader
 import requests
+import streamlit as st
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -209,6 +210,7 @@ def save_notices(notices):
 
 
 # 공지사항 불러오기 함수
+@st.cache_data
 def load_notices():
     """Cloudinary에서 공지사항 JSON 파일을 불러오기"""
     try:
