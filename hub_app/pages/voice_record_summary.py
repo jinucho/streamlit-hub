@@ -7,10 +7,7 @@ from tempfile import TemporaryDirectory
 import google.generativeai as genai
 import streamlit as st
 from dotenv import load_dotenv
-
-# 유틸리티 함수 임포트
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import check_runpod_status, upload_to_cloudinary, delete_from_cloudinary
+from utils import check_runpod_status, delete_from_cloudinary, upload_to_cloudinary
 
 # 페이지 네비게이션 숨기기
 hide_pages = """

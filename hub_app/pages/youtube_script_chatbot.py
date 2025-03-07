@@ -1,8 +1,9 @@
+import os
 import time
 import uuid
 
 import streamlit as st
-
+from dotenv import load_dotenv
 from utils import (
     check_runpod_status,
     create_downloadable_file,
@@ -10,9 +11,6 @@ from utils import (
     get_video_id,
     send_feedback_email,
 )
-
-import os
-from dotenv import load_dotenv
 
 load_dotenv()
 
