@@ -263,6 +263,14 @@ if uploaded_file is not None:
                                 # 변환 완료 상태 설정
                                 st.session_state.transcription_done = True
                                 status.update(label="처리 완료", state="complete")
+                                if (
+                                    st.session_state.transcription_done
+                                    and st.session_state.get("cloudinary_public_id")
+                                ):
+                                    delete_from_cloudinary(
+                                        st.session_state.cloudinary_public_id
+                                    )
+                                    st.session_state.cloudinary_public_id = None
                             else:
                                 st.error(
                                     "RunPod API에서 유효한 응답을 받지 못했습니다."
@@ -387,20 +395,6 @@ if uploaded_file is not None:
                             file_name=f"{os.path.splitext(uploaded_file.name)[0]}_meeting_minutes.txt",
                             mime="text/plain",
                         )
-
-            # 페이지 하단에 파일 삭제 버튼 추가
-            if st.session_state.transcription_done and st.session_state.get(
-                "cloudinary_public_id"
-            ):
-                st.markdown("---")
-                st.subheader("파일 관리")
-                if st.button("Cloudinary에서 음성 파일 삭제"):
-                    try:
-                        delete_from_cloudinary(st.session_state.cloudinary_public_id)
-                        st.success("파일이 성공적으로 삭제되었습니다.")
-                        st.session_state.cloudinary_public_id = None
-                    except Exception as e:
-                        st.error(f"파일 삭제 중 오류 발생: {str(e)}")
         else:
             st.info(
                 "파일이 업로드되었습니다. '음성 변환 시작' 버튼을 클릭하여 변환을 시작하세요."
