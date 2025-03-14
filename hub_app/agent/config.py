@@ -64,6 +64,7 @@ class Info(BaseModel):
     lng: str = Field(..., description="식당 경도")
     menu: str = Field(..., description="식당 메뉴")
     review: str = Field(..., description="식당 후기")
+    video_url: str = Field(..., description="식당 영상 URL")
 
 
 # 최종 응답 모델
