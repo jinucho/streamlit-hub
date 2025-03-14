@@ -59,7 +59,7 @@ projects = [
         "name": "먹을텐데 맛집 추천",
         "page": "./pages/meokten.py",
         "icon": "🍽️",
-        "thumbnail": "https://raw.githubusercontent.com/jinucho/streamlit-hub/refs/heads/main/hub_app/assets/Meokten.png",
+        "thumbnail": "https://raw.githubusercontent.com/jinucho/streamlit-hub/refs/heads/main/hub_app/assets/MeokTen.png",
         "description": "성시경 유튜브 먹을텐데 컨텐츠기반 맛집 추천",
     },
 ]
