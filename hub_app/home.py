@@ -55,14 +55,13 @@ projects = [
         "thumbnail": "https://raw.githubusercontent.com/jinucho/streamlit-hub/refs/heads/main/hub_app/assets/youtube_script_chatbot.webp",
         "description": "음성 녹음을 텍스트로 변환 후 회의록 작성",
     },
-    # 추가 프로젝트 예시
-    # {
-    #     "name": "프로젝트명",
-    #     "page": "pages/project2.py",
-    #     "icon": "🤖",
-    #     "thumbnail": "assets/project2_thumbnail.png",
-    #     "description": "간단한 설명",
-    # },
+    {
+        "name": "먹을텐데 맛집 추천",
+        "page": "./pages/meokten.py",
+        "icon": "🍽️",
+        "thumbnail": "https://raw.githubusercontent.com/jinucho/streamlit-hub/refs/heads/main/hub_app/assets/Meokten.png",
+        "description": "성시경 유튜브 먹을텐데 컨텐츠기반 맛집 추천",
+    },
 ]
 
 # 각 프로젝트를 위한 컨테이너 생성
@@ -114,6 +113,7 @@ with st.sidebar:
             <li><b>UI</b>: Streamlit</li>
             <li><b>Backend</b>: RunPod Serverless</li>
             <li><b>Storage</b>: Cloudinary</li>
+            <li><b>Map</b>: Folium</li>
         </ul>
         </div>
         """,

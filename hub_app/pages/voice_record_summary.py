@@ -1,5 +1,4 @@
 import os
-import sys
 import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -92,6 +91,7 @@ with st.sidebar:
         icon="📺",
     )
     st.page_link("pages/voice_record_summary.py", label="음성 녹음 요약", icon="🎤")
+    st.page_link("pages/meokten.py", label="먹텐 - 맛집 추천 AI", icon="🍽️")
 
 
 # 사이드바 설정
