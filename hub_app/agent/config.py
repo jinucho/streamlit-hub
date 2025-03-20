@@ -1,8 +1,10 @@
+import datetime
 import logging
 import os
 from pathlib import Path
 from typing import Annotated, List
 
+import pytz
 from dotenv import load_dotenv
 from langchain_core.messages import AnyMessage
 from langchain_openai import ChatOpenAI
@@ -16,35 +18,44 @@ load_dotenv()
 os.makedirs("logs", exist_ok=True)
 
 
-# 로깅 설정을 구성하는 함수
+class KSTFormatter(logging.Formatter):
+    """한국 시간(Asia/Seoul)으로 변환하는 Formatter"""
+
+    def formatTime(self, record, datefmt=None):
+        dt = datetime.datetime.fromtimestamp(record.created, pytz.utc).astimezone(
+            pytz.timezone("Asia/Seoul")
+        )
+        if datefmt:
+            return dt.strftime(datefmt)
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
 def get_logger():
     # 기본 로깅 설정
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    logging.basicConfig(level=logging.INFO)
 
     # 루트 로거 핸들러 초기화
     root_logger = logging.getLogger()
-    # 기존 핸들러 제거
     if root_logger.handlers:
         for handler in root_logger.handlers:
             root_logger.removeHandler(handler)
 
-    # 파일 핸들러 생성 (기본 로그)
-    file_name = Path(__file__).stem
-    file_handler = logging.FileHandler(f"logs/app.log")
-    file_formatter = logging.Formatter(
+    # 한국 시간 포맷터
+    formatter = KSTFormatter(
         "%(asctime)s - %(levelname)s - %(name)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    file_handler.setFormatter(file_formatter)
+
+    # 로그 파일 저장 경로
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)  # logs 디렉토리 생성 (없을 경우)
+    file_handler = logging.FileHandler(log_dir / "app.log")
+    file_handler.setFormatter(formatter)
     root_logger.addHandler(file_handler)
 
     # 콘솔 핸들러 추가
     console_handler = logging.StreamHandler()
-    console_handler.setFormatter(file_formatter)
+    console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
 
     return root_logger
