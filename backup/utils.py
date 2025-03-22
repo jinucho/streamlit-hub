@@ -8,6 +8,9 @@ from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+import cloudinary
+import cloudinary.api
+import cloudinary.uploader
 import requests
 import streamlit as st
 from dotenv import load_dotenv
@@ -23,15 +26,20 @@ HEADERS = {
     "Accept": "application/json",
 }
 
+# Cloudinary 설정
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True,
+)
+
 # 관리자 인증 정보
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "password")
 
-# 공지사항 파일 경로 설정 (Cloudinary 대신 로컬 파일 시스템 사용)
-NOTICE_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "notices.json")
-
-# 디렉토리가 없으면 생성
-os.makedirs(os.path.dirname(NOTICE_FILE_PATH), exist_ok=True)
+# 공지사항 파일 이름 및 경로
+NOTICE_PUBLIC_ID = "system/notices/notices.json"  # 확장자 제외 (Cloudinary 권장사항)
 
 
 def get_video_id(url):
@@ -142,6 +150,32 @@ def create_downloadable_file(session_state):
     return file_buffer
 
 
+# Cloudinary에 파일 업로드하고 URL 생성하는 함수
+def upload_to_cloudinary(file_path):
+    """
+    파일을 Cloudinary에 업로드하고 URL 반환
+
+    Args:
+        file_path (str): 업로드할 파일 경로
+
+    Returns:
+        str: 파일의 URL
+    """
+    try:
+        # 파일 업로드
+        result = cloudinary.uploader.upload(
+            file_path,
+            resource_type="auto",  # 자동으로 파일 유형 감지
+            folder="audio_files",  # 선택적 폴더 지정
+        )
+
+        # URL 반환
+        return result
+    except Exception as e:
+        print(f"Cloudinary 업로드 오류: {str(e)}")
+        return None
+
+
 # 관리자 인증 함수
 def verify_admin(username, password):
     """
@@ -157,49 +191,56 @@ def verify_admin(username, password):
     return username == ADMIN_USERNAME and password == ADMIN_PASSWORD
 
 
-# 공지사항 저장 함수 - 로컬 파일 시스템 사용
+# 공지사항 저장 함수
 def save_notices(notices):
-    """공지사항을 로컬 JSON 파일로 저장"""
+    """공지사항 JSON 데이터를 Cloudinary에 덮어쓰기"""
     try:
-        # JSON 데이터를 파일로 저장
-        with open(NOTICE_FILE_PATH, 'w', encoding='utf-8') as f:
-            json.dump(notices, f, ensure_ascii=False, indent=4)
-        return True
+        # JSON 데이터를 문자열로 변환 후 메모리 파일 객체로 저장
+        json_str = json.dumps(notices, ensure_ascii=False, indent=4)
+        json_file = io.BytesIO(json_str.encode("utf-8"))
+
+        # Cloudinary에 업로드 (덮어쓰기)
+        response = cloudinary.uploader.upload(
+            json_file, resource_type="raw", public_id=NOTICE_PUBLIC_ID, overwrite=True
+        )
+        return response
     except Exception as e:
         print(f"[ERROR] 공지사항 저장 실패: {e}")
-        return False
+        return None
 
 
-# 공지사항 불러오기 함수 - 로컬 파일 시스템 사용
+# 공지사항 불러오기 함수
+@st.cache_data
 def load_notices():
-    """로컬 파일 시스템에서 공지사항 JSON 파일을 불러오기"""
+    """Cloudinary에서 공지사항 JSON 파일을 불러오기"""
     try:
-        # 파일이 없으면 빈 공지사항 생성
-        if not os.path.exists(NOTICE_FILE_PATH):
-            return create_empty_notices()
-            
-        # 파일에서 JSON 데이터 불러오기
-        with open(NOTICE_FILE_PATH, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            
+        # Cloudinary에서 파일 정보 가져오기
+        response = cloudinary.api.resource(NOTICE_PUBLIC_ID, resource_type="raw")
+        file_url = response["secure_url"]
+
+        # JSON 데이터 다운로드
+        file_response = requests.get(file_url)
+        file_response.raise_for_status()
+
         # 데이터 변환 (문자열 리스트 -> 딕셔너리 리스트)
+        data = file_response.json()
         if isinstance(data, list) and all(isinstance(item, str) for item in data):
             data = [
                 {"date": item.split(": ")[0], "content": item.split(": ")[1]}
                 for item in data
                 if ": " in item
             ]
-            
+
         return data
     except Exception as e:
         print(f"[ERROR] 공지사항 불러오기 실패: {e}")
         return []
 
 
-# 빈 공지사항 생성 함수 - 로컬 파일 시스템 사용
+# 빈 공지사항 생성 함수
 def create_empty_notices():
     """
-    빈 공지사항 파일을 생성하고 로컬에 저장합니다.
+    빈 공지사항 파일을 생성하고 Cloudinary에 업로드합니다.
 
     Returns:
         list: 빈 공지사항 목록
@@ -214,27 +255,46 @@ def create_empty_notices():
         return []
 
 
-# 공지사항 추가 함수 - 로컬 파일 시스템 사용
+# 공지사항 추가 함수
 def add_notice(new_notice):
-    """새로운 공지사항 추가 후 로컬에 저장"""
+    """새로운 공지사항 추가 후 Cloudinary에 저장"""
     notices = load_notices()
     notices.append(new_notice)
     return save_notices(notices)
 
 
-# 공지사항 삭제 함수 - 로컬 파일 시스템 사용
+# 공지사항 삭제 함수
 def delete_notice(index):
-    """공지사항 삭제 후 로컬에 저장"""
+    """공지사항 삭제 후 Cloudinary에 저장"""
     notices = load_notices()
     if 0 <= index < len(notices):
         del notices[index]
     return save_notices(notices)
 
 
-# 공지사항 수정 함수 - 로컬 파일 시스템 사용
+# 공지사항 수정 함수
 def update_notice(index, updated_notice):
-    """공지사항 수정 후 로컬에 저장"""
+    """공지사항 수정 후 Cloudinary에 저장"""
     notices = load_notices()
     if 0 <= index < len(notices):
         notices[index] = updated_notice
     return save_notices(notices)
+
+
+# Cloudinary에서 파일 삭제하는 함수
+def delete_from_cloudinary(public_id):
+    """
+    Cloudinary에서 파일을 삭제하는 함수
+
+    Args:
+        public_id (str): 삭제할 파일의 public_id
+
+    Returns:
+        dict: 삭제 결과
+    """
+    try:
+        result = cloudinary.uploader.destroy(public_id)
+        return result
+    except Exception as e:
+        print(f"Cloudinary 파일 삭제 오류: {str(e)}")
+        raise e

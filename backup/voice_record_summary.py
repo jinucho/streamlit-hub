@@ -2,12 +2,11 @@ import os
 import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import shutil  # 파일 복사를 위한 라이브러리 추가
 
 import google.generativeai as genai
 import streamlit as st
 from dotenv import load_dotenv
-from utils import check_runpod_status
+from utils import check_runpod_status, delete_from_cloudinary, upload_to_cloudinary
 
 # 페이지 네비게이션 숨기기
 hide_pages = """
@@ -157,31 +156,22 @@ uploaded_file = st.file_uploader(
     "음성 파일 업로드 (.mp3, .wav, .m4a, .ogg)", type=["mp3", "wav", "m4a", "ogg"]
 )
 
-# 정적 파일 저장을 위한 디렉토리 설정
-STATIC_DIR = Path("static/audio")
-STATIC_DIR.mkdir(parents=True, exist_ok=True)  # 디렉토리가 없으면 생성
-
-
-# cloudinary_public_id 대신 file_path 저장
-if "local_file_path" not in st.session_state:
-    st.session_state.local_file_path = None
-
 # 파일이 업로드되면 세션 상태 초기화
 if uploaded_file is not None and "current_file" not in st.session_state:
     st.session_state.current_file = uploaded_file.name
     st.session_state.transcription_done = False
     st.session_state.meeting_minutes = ""
-    st.session_state.local_file_path = None  # 로컬 파일 경로 저장용
+    st.session_state.cloudinary_public_id = None  # Cloudinary 파일 ID 저장용
 elif (
     uploaded_file is not None
     and st.session_state.get("current_file") != uploaded_file.name
 ):
     # 새 파일이 업로드되면 상태 초기화
     # 이전 파일이 있으면 삭제
-    if st.session_state.get("local_file_path") and os.path.exists(st.session_state.local_file_path):
+    if st.session_state.get("cloudinary_public_id"):
         try:
-            os.remove(st.session_state.local_file_path)
-            st.session_state.local_file_path = None
+            delete_from_cloudinary(st.session_state.cloudinary_public_id)
+            st.session_state.cloudinary_public_id = None
         except Exception as e:
             st.warning(f"이전 파일 삭제 중 오류 발생: {str(e)}")
 
@@ -215,42 +205,27 @@ if uploaded_file is not None:
                     # 텍스트 추출 시작
                     start_time = time.time()
                     try:
-                        # 로컬 정적 디렉토리에 파일 저장
-                        st.write("파일 저장 중...")
-                        # 고유한 파일 이름 생성 (시간 스탬프 추가)
-                        timestamp = int(time.time())
-                        ext = Path(temp_file_path).suffix
-                        static_filename = f"{timestamp}{ext}"
+                        # Cloudinary에 파일 업로드하고 URL 얻기
+                        st.write("파일 업로드 중...")
+                        upload_result = upload_to_cloudinary(str(temp_file_path))
+                        if not upload_result or "secure_url" not in upload_result:
+                            status.update(label="업로드 실패", state="error")
+                            st.error("Cloudinary 업로드 실패")
+                            st.session_state.processing = False
+                            st.stop()
 
-                        # 현재 스크립트 위치를 기준으로 절대 경로 생성
-                        current_script_dir = Path(__file__).parent.absolute()
-                        app_root = current_script_dir.parent  # hub_app 디렉토리
-                        static_file_path = app_root / "static" / "audio" / static_filename
-
-                        # 정적 디렉토리 생성
-                        static_dir = app_root / "static" / "audio"
-                        static_dir.mkdir(parents=True, exist_ok=True)
-
-                        # 임시 파일을 정적 디렉토리로 복사
-                        shutil.copy(temp_file_path, static_file_path)
-
-                        # 권한 부여                        
-                        os.chmod(static_file_path, 0o644)
-
-                        
-                        # 파일 경로 저장
-                        st.session_state.local_file_path = str(static_file_path)
-                        
-                        # 파일 URL 생성 - 단순화된 버전
-                        audio_url = f"https://grapeman.duckdns.org/static/audio/{static_filename}"
-                        st.write("파일 저장 완료")
-                        st.write(audio_url)
+                        audio_url = upload_result["secure_url"]
+                        # Cloudinary 파일 ID 저장 (나중에 삭제하기 위함)
+                        st.session_state.cloudinary_public_id = upload_result[
+                            "public_id"
+                        ]
+                        st.write("파일 업로드 완료")
 
                         # URL 방식으로 RunPod API 요청 페이로드 구성
                         payload = {
                             "input": {
                                 "params": {
-                                    "audio_url": audio_url,  # 로컬 파일 URL 전달
+                                    "audio_url": audio_url,
                                     "model": "large-v3",
                                     "batch_size": 32,
                                     "language": language,
@@ -285,16 +260,14 @@ if uploaded_file is not None:
                                 # 변환 완료 상태 설정
                                 st.session_state.transcription_done = True
                                 status.update(label="처리 완료", state="complete")
-                                
-                                # 파일 처리 완료 후 정적 디렉토리에 저장된 파일 삭제
-                                if st.session_state.transcription_done and st.session_state.get("local_file_path"):
-                                    try:
-                                        os.remove(st.session_state.local_file_path)
-                                        st.session_state.local_file_path = None
-                                        # st.write("임시 파일이 삭제되었습니다.")
-                                    except Exception as e:
-                                        # st.warning(f"임시 파일 삭제 중 오류 발생: {str(e)}")
-                                        pass
+                                if (
+                                    st.session_state.transcription_done
+                                    and st.session_state.get("cloudinary_public_id")
+                                ):
+                                    delete_from_cloudinary(
+                                        st.session_state.cloudinary_public_id
+                                    )
+                                    st.session_state.cloudinary_public_id = None
                             else:
                                 st.error(
                                     "RunPod API에서 유효한 응답을 받지 못했습니다."
@@ -313,7 +286,6 @@ if uploaded_file is not None:
                                 **해결 방법:**
                                 - 오디오 파일이 올바른 형식인지 확인
                                 - RunPod 서비스 상태 확인
-                                - RunPod가 로컬 URL에 접근할 수 있는지 확인
                                 """
                                 )
                                 status.update(label="API 호출 오류", state="error")
@@ -328,7 +300,7 @@ if uploaded_file is not None:
                         status.update(label="처리 실패", state="error")
                         st.stop()
 
-                    # 처리 시간 계산
+                    # 처리 시간 계산 - 오디오 길이 정보가 없으므로 처리 시간만 표시
                     process_time = time.time() - start_time
 
                     # 결과 표시

@@ -14,16 +14,15 @@ notices = load_notices()
 
 # 공지사항 표시
 with st.expander("🔔 업데이트 내역", expanded=False):
-    with st.container(height=300):
-        if notices:
-            # 날짜 기준으로 내림차순 정렬 (최신순)
-            sorted_notices = sorted(notices, key=lambda x: x.get("date", ""), reverse=True)
+    if notices:
+        # 날짜 기준으로 내림차순 정렬 (최신순)
+        sorted_notices = sorted(notices, key=lambda x: x.get("date", ""), reverse=True)
 
-            for notice in sorted_notices:
-                st.markdown(f"#### {notice['date']}")
-                st.markdown(notice["content"])
-        else:
-            st.info("등록된 공지사항이 없습니다.")
+        for notice in sorted_notices:
+            st.markdown(f"#### {notice['date']}")
+            st.markdown(notice["content"])
+    else:
+        st.info("등록된 공지사항이 없습니다.")
 
 # 페이지 네비게이션 숨기기
 hide_pages = """
