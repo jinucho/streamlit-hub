@@ -46,6 +46,7 @@ with st.sidebar:
     """
     )
 # Streamlit 웹 애플리케이션 설정
+# st.title("점검 중 입니다.")
 st.title("유튜브 스크립트 추출 및 요약과 AI 채팅")
 
 col1, col2 = st.columns(2)
@@ -127,7 +128,7 @@ def process_chat_response(prompt, url_id, message_placeholder):
 
         return bot_message
     except Exception as e:
-        st.error(f"오류가 발생했습니다: {e}")
+        st.error(f"Error processing chat response: {str(e)}")
         return None
 
 
@@ -192,7 +193,6 @@ if st.button("스크립트 추출"):
                 }
             }
             data = check_runpod_status(payload, st.session_state.runpod_id)
-            st.write(data)
             st.session_state.title = data.get("output", {}).get("title", "제목")
             st.session_state.hashtags = data.get("output", {}).get("hashtags", "")
             st.rerun()  # 기본 정보를 표시하기 위한 리런
@@ -263,7 +263,13 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                 # 각 질문에 대한 버튼 생성
                 for question in st.session_state.recommendations:
                     if st.button(question, key=f"btn_{question}"):
-                        handle_question(question)
+                        st.session_state.messages.append(
+                            {
+                                "role": "user",
+                                "content": f"{question} ({get_current_time()})",
+                            }
+                        )
+                        st.rerun()
 
         # 메시지를 표시할 고정 컨테이너
         messages_container = st.container(height=800)
@@ -282,9 +288,34 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                 with st.chat_message(message["role"]):
                     st.write(message["content"])
 
+            # 마지막 사용자 메시지가 있고 아직 답변이 없는 경우 답변 생성
+            if (
+                st.session_state.messages
+                and st.session_state.messages[-1]["role"] == "user"
+            ):
+                with st.chat_message("assistant"):
+                    message_placeholder = st.empty()
+                    # 마지막 사용자 메시지에서 시간 정보 제거
+                    last_question = st.session_state.messages[-1]["content"].split(
+                        " ("
+                    )[0]
+                    bot_message = process_chat_response(
+                        last_question, st.session_state.video_id, message_placeholder
+                    )
+
+                    if bot_message:
+                        final_message = f"{bot_message} ({get_current_time()})"
+                        message_placeholder.write(final_message)
+                        st.session_state.messages.append(
+                            {"role": "assistant", "content": final_message}
+                        )
+
         # 새 메시지 처리
         if prompt:
-            handle_question(prompt)
+            st.session_state.messages.append(
+                {"role": "user", "content": f"{prompt} ({get_current_time()})"}
+            )
+            st.rerun()
         if st.session_state.summary and st.session_state.transcript:
             st.markdown("---")
             st.header("데이터 다운로드")
