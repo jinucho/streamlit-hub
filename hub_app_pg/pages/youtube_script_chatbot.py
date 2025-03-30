@@ -180,23 +180,22 @@ if url != st.session_state.last_url:
 
 # URL 입력 및 스크립트 추출을 위한 버튼 클릭 상태 확인
 if st.button("스크립트 추출"):
-    with st.spinner("영상 정보 수집 중..."):
-        if url:
-            if "youtu" not in url:
-                st.warning("유효한 유튜브 URL을 입력하세요.")
-            else:
-                st.session_state.video_id = get_video_id(url)
-                # get_title_hash 엔드포인트 호출
-                payload = {
-                    "input": {
-                        "endpoint": "get_title_hash",
-                        "params": {"url": url, "url_id": st.session_state.video_id},
-                    }
+    if url:
+        if "youtu" not in url:
+            st.warning("유효한 유튜브 URL을 입력하세요.")
+        else:
+            st.session_state.video_id = get_video_id(url)
+            # get_title_hash 엔드포인트 호출
+            payload = {
+                "input": {
+                    "endpoint": "get_title_hash",
+                    "params": {"url": url, "url_id": st.session_state.video_id},
                 }
-                data = check_runpod_status(payload, st.session_state.runpod_id)
-                st.session_state.title = data.get("output", {}).get("title", "제목")
-                st.session_state.hashtags = data.get("output", {}).get("hashtags", "")
-                st.rerun()  # 기본 정보를 표시하기 위한 리런
+            }
+            data = check_runpod_status(payload, st.session_state.runpod_id)
+            st.session_state.title = data.get("output", {}).get("title", "제목")
+            st.session_state.hashtags = data.get("output", {}).get("hashtags", "")
+            st.rerun()  # 기본 정보를 표시하기 위한 리런
 
 if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아웃 표시
     col1, col2 = st.columns(2)

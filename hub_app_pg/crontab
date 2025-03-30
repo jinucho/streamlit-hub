@@ -1,0 +1,7 @@
+TZ=Asia/Seoul
+
+# 매 분마다 collecting_data.py 실행
+*/3 * * * * cd /app && /usr/local/bin/python collecting_data.py >> /app/logs/cron.log 2>&1
+
+# 5분마다 save_db.py 실행
+*/5 * * * * cd /app && /usr/local/bin/python save_db.py >> /app/logs/cron.log 2>&1

@@ -1,0 +1,62 @@
+services:
+  streamlit-hub:
+    build: .
+    image: streamlit-hub
+    container_name: streamlit-hub
+    command: ["streamlit", "run", "home.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.baseUrlPath=test"]
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      TZ: Asia/Seoul
+    env_file:
+      - ../.env
+    user: "${UID}:${GID}"
+    volumes:
+      - .:/app
+      - .streamlit:/app/.streamlit
+      - ./logs:/app/logs
+      - ./data:/app/data
+    depends_on:
+      - db
+    networks:
+      - streamlit-network
+
+  cron:
+    build: .
+    image: streamlit-hub
+    container_name: streamlit-hub-cron
+    volumes:
+      - ./logs:/app/logs
+    working_dir: /app
+    command: ["/bin/sh", "-c", "printenv > /etc/environment && cron -f"]
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Seoul
+    env_file:
+      - ../.env
+    networks:
+      - streamlit-network
+      
+  db:
+    image: postgres:15-alpine
+    container_name: streamlit-hub-db
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Seoul
+    env_file:
+      - ../.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - streamlit-network
+
+networks:
+  streamlit-network:
+    driver: bridge
+
+volumes:
+  postgres_data: 

@@ -20,7 +20,7 @@ with st.expander("🔔 업데이트 내역", expanded=False):
             sorted_notices = sorted(notices, key=lambda x: x.get("date", ""), reverse=True)
 
             for notice in sorted_notices:
-                st.markdown(f"#### {notice['date']}", unsafe_allow_html=True)
+                st.markdown(f"#### {notice['date']}")
                 st.markdown(notice["content"], unsafe_allow_html=True)
         else:
             st.info("등록된 공지사항이 없습니다.")

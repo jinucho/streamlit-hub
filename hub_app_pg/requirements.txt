@@ -1,0 +1,16 @@
+pip>=25.0.1
+setuptools==75.2.0
+wheel==0.38.0
+python-dotenv==1.0.1
+google-generativeai==0.8.3
+streamlit==1.43.0
+streamlit-folium==0.24.0
+langchain==0.3.13
+langgraph==0.2.64
+langchain-openai==0.2.2
+langchain-community==0.3.13
+folium==0.19.3
+python-dotenv==1.0.1
+pydantic==2.9.2
+yt_dlp==2025.2.19
+psycopg2-binary==2.9.10

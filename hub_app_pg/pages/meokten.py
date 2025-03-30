@@ -5,12 +5,11 @@ from streamlit_folium import st_folium
 
 from agent.config import get_logger
 
-# from .agent.db import get_db_connection
+from agent.db import get_db_connection
 
 # 커스텀 모듈 임포트
 from agent.graph import AgentGraph
 from map_utils import create_restaurant_map
-from agent.db import get_db_connection
 
 # 페이지 네비게이션 숨기기
 hide_pages = """
@@ -27,18 +26,17 @@ st.markdown(hide_pages, unsafe_allow_html=True)
 def create_agent_graph():
     return AgentGraph()
 
+@st.cache_resource
+def get_db():
+    return get_db_connection()
 
-# @st.cache_resource
-# def get_db():
-#     return get_db_connection()
 
+db, _ = get_db()
+
+restaurant_count = db._execute("SELECT count(*) FROM restaurants")[0]["count"]
 
 # 로깅 설정 - app.log 파일에 로그 기록
 logger = get_logger()
-
-# # db 연결
-# db, _ = get_db()
-# db._execute("SELECT count(*) FROM restaurants")[0]["count(*)"]
 
 # 지도 크기 설정 (고정 값으로 유지)
 MAP_WIDTH = 800
@@ -173,10 +171,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-db = get_db_connection()[0]
-
-data_count = db._execute("SELECT count(*) FROM restaurants")[0]["count(*)"]
-
 # 제목 및 소개
 st.title("🍽️ 먹텐 - 맛집 추천 AI")
 st.subheader("성시경의 '먹을텐데' 맛집 추천 서비스")
@@ -184,9 +178,10 @@ st.markdown(
     f"""
     성시경이 유튜브 채널 '먹~을~텐데'에서 소개한 맛집을 추천해드립니다.\n
     지역, 음식 종류 등을 입력하시면 맞춤형 맛집을 추천해드립니다.\n
-    총 **{data_count}**개의 맛집 데이터가 있습니다.
+    총 **{restaurant_count}**개의 맛집 데이터가 있습니다.
     """
 )
+
 # st.write(f"총 {data_count}개의 맛집 데이터가 있습니다.")
 
 # 사이드바

@@ -11,3 +11,4 @@ data/
 * copy
 * copy.*
 *.db
+*.sql

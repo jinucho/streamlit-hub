@@ -125,6 +125,7 @@ with st.sidebar:
             "RunPod API 키 또는 엔드포인트 ID가 설정되지 않았습니다. .env 파일에 RUNPOD_API_KEY와 RUNPOD_WHISPER_ENDPOINT_ID를 추가해주세요."
         )
 
+
     st.markdown("---")
     st.write("사용 방법")
     st.markdown(
