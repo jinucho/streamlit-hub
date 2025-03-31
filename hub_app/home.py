@@ -97,7 +97,7 @@ with st.sidebar:
         st.page_link(project["page"], label=f"{project['icon']} {project['name']}")
     st.markdown("---")
     st.page_link("./pages/admin.py", label="🔒 관리자 페이지")
-
+    st.page_link("https://grapeman.duckdns.org/notion", label="👨‍💻 포트폴리오")
     st.markdown("---")
 
     # 기술 스택 섹션

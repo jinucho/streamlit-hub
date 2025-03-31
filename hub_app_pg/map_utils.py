@@ -4,16 +4,6 @@ from folium.plugins import MarkerCluster, FeatureGroupSubGroup
 from typing import List, Dict, Any
 import random
 
-# 지도 스타일 옵션
-MAP_STYLES = {
-    "기본": "OpenStreetMap",
-    "밝은 테마": "CartoDB positron",
-    "어두운 테마": "CartoDB dark_matter",
-    "위성 이미지": "Stamen Terrain",
-    "수채화 스타일": "Stamen Watercolor",
-}
-
-
 def create_simple_popup(restaurant: dict) -> str:
     """
     식당 정보를 바탕으로 간단한 팝업 내용을 생성합니다.

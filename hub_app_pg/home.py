@@ -2,10 +2,10 @@ import streamlit as st
 from utils import load_notices
 
 # Streamlit 웹 애플리케이션 설정
-st.set_page_config(page_title="Jinu's AI Projects", page_icon="🏠", layout="wide")
+st.set_page_config(page_title="포도남자의 AI Projects", page_icon="🏠", layout="wide")
 
 # 홈페이지 제목
-st.title("🚀 Jinu's AI Projects")
+st.title("🚀 포도남자의 AI Projects")
 st.write("LLM, RAG, LangChain, LangGraph 기반 AI 애플리케이션 모음")
 st.markdown("---")
 
@@ -97,6 +97,7 @@ with st.sidebar:
         st.page_link(project["page"], label=f"{project['icon']} {project['name']}")
     st.markdown("---")
     st.page_link("./pages/admin.py", label="🔒 관리자 페이지")
+    st.page_link("https://grapeman.duckdns.org/notion", label="👨‍💻 포트폴리오")
 
     st.markdown("---")
 
