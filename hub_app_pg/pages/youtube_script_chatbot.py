@@ -3,6 +3,7 @@ import time
 import uuid
 
 import streamlit as st
+from agent.config import get_logger
 from dotenv import load_dotenv
 from utils import (
     check_runpod_status,
@@ -13,6 +14,8 @@ from utils import (
 )
 
 load_dotenv()
+
+logger = get_logger()
 
 # 페이지 네비게이션 숨기기
 hide_pages = """
@@ -161,11 +164,13 @@ def handle_question(question):
 col1, col2 = st.columns([3, 1])
 with col1:
     url = st.text_input("유튜브 URL을 입력하세요:", key="youtube_url")
+    logger.info(f"유튜브 URL: {url}")
 with col2:
     model = st.selectbox(
         "모델 선택", ["gpt4o-mini", "Qwen2.5-7b"], key="model_selection"
     )
-
+    logger.info(f"모델 선택: {model}")
+    
 # 모델 선택에 따라 session_state 값 업데이트
 if model == "Qwen2.5-7b":
     st.session_state.runpod_id = os.getenv("RUNPOD_ENDPOINT_ID_VLLM")
@@ -280,7 +285,7 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
         # 채팅 입력 처리
         with input_container:
             prompt = st.chat_input("메시지를 입력하세요")
-
+            logger.info(f"prompt: {prompt}")
         # 메시지 표시 (채팅 이력)
         with messages_container:
             # 이전 메시지들 표시
@@ -305,6 +310,7 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
 
                     if bot_message:
                         final_message = f"{bot_message} ({get_current_time()})"
+                        logger.info(f"bot_message: {final_message}")
                         message_placeholder.write(final_message)
                         st.session_state.messages.append(
                             {"role": "assistant", "content": final_message}
