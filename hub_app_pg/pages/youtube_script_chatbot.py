@@ -164,12 +164,10 @@ def handle_question(question):
 col1, col2 = st.columns([3, 1])
 with col1:
     url = st.text_input("유튜브 URL을 입력하세요:", key="youtube_url")
-    logger.info(f"유튜브 URL: {url}")
 with col2:
     model = st.selectbox(
         "모델 선택", ["gpt4o-mini", "Qwen2.5-7b"], key="model_selection"
     )
-    logger.info(f"모델 선택: {model}")
     
 # 모델 선택에 따라 session_state 값 업데이트
 if model == "Qwen2.5-7b":
@@ -186,6 +184,8 @@ if url != st.session_state.last_url:
 # URL 입력 및 스크립트 추출을 위한 버튼 클릭 상태 확인
 if st.button("스크립트 추출"):
     if url:
+        logger.info(f"유튜브 URL: {url}")
+        logger.info(f"모델 선택: {model}")
         if "youtu" not in url:
             st.warning("유효한 유튜브 URL을 입력하세요.")
         else:
