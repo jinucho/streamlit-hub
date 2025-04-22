@@ -50,11 +50,9 @@ menu_type은 결과에 따라 적절하게 변형해서 사용하세요.(예: �
 1. 질문에 대한 적절한 쿼리 결과가 존재하지 않는 경우, 사용자의 질문을 해결할 수 있는 SQL 구문적으로 올바른 SQLite 쿼리를 생성하세요. 단, 데이터베이스에 영향을 주는 DML 문(INSERT, UPDATE, DELETE, DROP 등)은 절대 사용하지 마세요.
 
 2. 새로운 쿼리를 생성할 경우, 오직 쿼리문만 반환해야 하며, 반드시 '=' 대신 LIKE 연산자를 사용해야 합니다. 또한, 'restaurants' 테이블과 'menus' 테이블을 LEFT JOIN으로 조인해야 합니다.
-    그리고 쿼리에서 모든 컬럼의 이름을 명시적으로 호출해야 합니다.
+    그리고 쿼리에서 모든 컬럼을 호출해야 합니다.
     예를 들어:
-    "SELECT r.id AS restaurant_id, r.name AS restaurant_name, r.address, r.station_name, r.lat, r.lng, r.review, 
-    m.id AS menu_id, m.restaurant_id AS menu_restaurant_id, m.menu_name AS menu_name 
-    FROM restaurants r LEFT JOIN menus m ON r.id = m.restaurant_id 
+    "SELECT * FROM restaurants r LEFT JOIN menus m ON r.id = m.restaurant_id 
     WHERE r.station_name LIKE '%논현역%' or r.address LIKE '%논현동%';"
 
 3. 이미 실행된 쿼리가 오류를 발생시킨 경우, 동일한 오류 메시지를 그대로 반환하세요.
@@ -62,9 +60,10 @@ menu_type은 결과에 따라 적절하게 변형해서 사용하세요.(예: �
 
 4. 쿼리가 성공적으로 실행되었을 경우, 쿼리의 결과를 컬럼명과 모든 정보를 그대로 반환하세요:
     "Answer: <<쿼리의 결과>>"
-    예를 들어: "Answer: restaurant_id, restaurant_name, address, station_name, lat, lng, review, menu_id, menu_restaurant_id, menu_name
-    (1, '논현동 맛집', '논현동', '논현역', 37.514352, 127.014352, '맛집 후기', 1, 1, '피자'),
-    (2, '논현동 맛집', '논현동', '논현역', 37.514352, 127.014352, '맛집 후기', 2, 1, '스테이크')"
+    예를 들어: 
+    "Answer: id, name, address, latitude, longitude, station_name, video_id, video_url, id, restaurant_id, menu_type, menu_name, menu_review"
+    "(11	"크리스피포크타운"	"서울 용산구 녹사평대로40길 47 1층 (이태원동 455-33)"	"37.534536039917"	"126.988462709359"	"녹사평역 6호선(170m)"	"BI7EPHvf0dY_0"	"https://www.youtube.com/watch?v=BI7EPHvf0dY"	56	11	"멕시칸"	"크리스피 포크 타코"	"성시경은 이 타코를 매우 좋아하며, 특히 바삭한 돼지고기와 함께 먹는 것을 추천했다. 그는 이곳의 주인이 친절하고 음식이 훌륭하다고 언급했다.")"
+    "(11	"크리스피포크타운"	"서울 용산구 녹사평대로40길 47 1층 (이태원동 455-33)"	"37.534536039917"	"126.988462709359"	"녹사평역 6호선(170m)"	"BI7EPHvf0dY_0"	"https://www.youtube.com/watch?v=BI7EPHvf0dY"	57	11	"멕시칸"	"치즈 타코"	"치즈 타코는 다양한 치즈가 혼합되어 있으며, 전채 요리로 훌륭하다고 평가했다. 또르띠야의 옥수수 맛이 잘 느껴진다고 언급했다."")"
     
 Here is Table information:
 {table_info}
